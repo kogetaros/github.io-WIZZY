@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ぽこぽこWIZZY</title>
+    <style>
+        :root {
+            --rows: 9;
+            /* 行数 */
+            --cols: 7;
+            /* 列数 */
+            --gap: 6px;
+            /* マス間のすき間 */
+            --pad: 10px;
+            /* 盤面の内側余白 */
+            --boardMax: min(92vw, 92svw);
+            --cell: calc((var(--boardMax) - ((var(--cols) - 1) * var(--gap)) - (2 * var(--pad))) / var(--cols));
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2e3771;
+            color: #f2f5ff;
+            font-family: system-ui, sans-serif;
+            display: grid;
+            place-items: center;
+            min-height: 100svh;
+        }
+
+        .wrap {
+            width: calc(var(--cols) * var(--cell) + (var(--cols)-1) * var(--gap) + 2 * var(--pad));
+            transform: translateX(-5px);
+        }
+
+        .hud {
+            display: block;
+            /* ← 縦並び */
+            margin-bottom: 12px;
+        }
+
+        .hud>* {
+            text-align: center;
+            margin-bottom: 8px;
+            /* 子要素の間に余白 */
+        }
+
+        .hud h1 {
+            margin: 0;
+            font-size: 50px;
+            font-weight: 700;
+        }
+
+        .score {
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .btn {
+            background: #1e2448;
+            border: 1px solid #36407a;
+            color: #e6ebff;
+            padding: 8px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        /* 盤面 */
+        .board {
+            position: relative;
+            overflow: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+            width: calc(var(--cols) * var(--cell) + (var(--cols)-1) * var(--gap) + 2 * var(--pad));
+            height: calc(var(--rows) * var(--cell) + (var(--rows)-1) * var(--gap) + 2 * var(--pad));
+            display: grid;
+            grid-template-columns: repeat(var(--cols), var(--cell));
+            grid-template-rows: repeat(var(--rows), var(--cell));
+            gap: var(--gap);
+            padding: var(--pad);
+            border-radius: 24px;
+            background: linear-gradient(180deg, #121633, #0a0d22);
+            box-shadow: inset 0 0 0 1px #212857, 0 10px 30px rgba(0, 0, 0, .4);
+        }
+
+        .cell {
+            display: grid;
+            place-items: center;
+            overflow: visible;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+
+        /* 外側：位置制御＆丸クリップ／ 内側：見た目 */
+        .gem {
+            width: 78%;
+            height: 78%;
+            border-radius: 50%;
+            overflow: hidden;
+            position: relative;
+            transition: opacity .12s ease;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .disk {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #fff;
+            /* ← ここをベース色として後で JS が上書き */
+            background-image:
+                radial-gradient(120% 120% at 30% 25%, rgba(255, 255, 255, .65), rgba(255, 255, 255, 0) 36%),
+                radial-gradient(100% 100% at 65% 75%, rgba(0, 0, 0, .22), rgba(0, 0, 0, 0) 46%);
+        }
+
+        /* 選択ハイライト（発光） */
+        .gem.selected {
+            transform: scale(.9);
+            box-shadow: 0 0 15px 5px rgba(255, 255, 255, .8);
+            z-index: 2;
+            /* 上に出す */
+        }
+
+        /* 消滅＆着地演出 */
+        @keyframes pop {
+            0% {
+                transform: scale(1);
+                opacity: 1
+            }
+
+            100% {
+                transform: scale(0);
+                opacity: 0
+            }
+        }
+
+        .pop {
+            animation: pop .18s ease forwards;
+        }
+
+        @keyframes squashIn {
+            0% {
+                transform: scaleY(.9) scaleX(1.05)
+            }
+
+            60% {
+                transform: scaleY(1.12) scaleX(.92)
+            }
+
+            100% {
+                transform: scale(1)
+            }
+        }
+
+        .squash {
+            animation: squashIn 200ms cubic-bezier(.2, .9, .2, 1);
+        }
+
+        .hint {
+            margin-top: 10px;
+            opacity: .8;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .3
+            }
+        }
+
+        .time-low {
+            animation: blink .8s linear infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="hud">
+            <h1>ぽこぽこWIZZY</h1>
+            <div>スコア: <span id="score" class="score">0</span></div>
+            <div>残り: <span id="time" class="score">30</span> 秒</div>
+            <button id="reset" class="btn">リセット</button>
+        </div>
+        <div id="board" class="board" aria-label="Game Board" role="application"></div>
+        <p class="hint">同色のピースをドラッグで繋げてください。上下左右<strong>＋斜め</strong>で3個以上つながると消えます。</p>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+            // ===== 基本設定 =====
+            var ROWS = 7, COLS = 7;
+            var COLORS = ["#ffcd57", "#6cd5ff", "#a8f06a", "#ff7aa2", "#9f8bff"];
+            var MIN_CHAIN = 3; // 必要なら4以上に
+            var isGameEnded = false;  // ← ゲーム終了ガード
+
+            var boardEl = document.getElementById('board');
+            var scoreEl = document.getElementById('score');
+            var resetBtn = document.getElementById('reset');
+
+            var grid = makeGrid(ROWS, COLS);
+            var score = 0, isDragging = false, chain = [], chainColor = null, isResolving = false;
+
+            // ===== 初期化 =====
+            document.documentElement.style.setProperty('--rows', ROWS);
+            document.documentElement.style.setProperty('--cols', COLS);
+            startGame();
+
+            // プレイ中のみブロック。ゲームオーバー(=timeLeft<=0)は許可
+            resetBtn.addEventListener('click', function () { if (timerId) { clearInterval(timerId); timerId = null; } startGame(); });
+
+            function makeGrid(r, c) { var a = new Array(r); for (var i = 0; i < r; i++) { a[i] = new Array(c); for (var j = 0; j < c; j++) a[i][j] = null; } return a; }
+            function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+            function init() {
+                for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) grid[r][c] = rand(0, COLORS.length - 1);
+                renderAll(true);
+            }
+
+            // ===== レンダリング =====
+            function renderAll(anim) {
+                boardEl.innerHTML = '';
+                const gemsToAnimate = [];
+
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        const cell = document.createElement('div'); cell.className = 'cell';
+                        const gem = document.createElement('div'); gem.className = 'gem';
+                        const disk = document.createElement('div'); disk.className = 'disk';
+                        const idx = grid[r][c];
+
+                        if (idx != null) {
+                            disk.style.backgroundColor = COLORS[idx];
+                        } else {
+                            gem.style.opacity = 0;
+                        }
+
+                        gem.appendChild(disk);
+                        cell.appendChild(gem);
+                        boardEl.appendChild(cell);
+
+                        if (anim) {
+                            let d = 0;
+                            if (anim.fallDist && anim.fallDist[r] && anim.fallDist[r][c]) d = anim.fallDist[r][c];
+                            if (anim.spawnDist && anim.spawnDist[r] && anim.spawnDist[r][c]) d = anim.spawnDist[r][c];
+                            if (d > 0) gemsToAnimate.push({ gem, dist: d });
+                        }
+                    }
+                }
+
+                // 落下アニメ
+                requestAnimationFrame(() => {
+                    for (const { gem, dist } of gemsToAnimate) {
+                        fall(gem, dist);
+                    }
+                });
+
+                // 選択復元
+                restoreSelection();
+            }
+
+            function restoreSelection() {
+                for (var i = 0; i < chain.length; i++) {
+                    var p = chain[i];
+                    var idx = p.r * COLS + p.c;
+                    var cell = boardEl.children[idx];
+                    if (cell) cell.classList.add('selected');
+                }
+            }
+
+            // セル→gem/diskを安全に取得（足りなければ作る）
+            function ensureCellNodes(idx) {
+                var cell = boardEl.children[idx]; if (!cell) return { cell: null, gem: null, disk: null };
+                var gem = cell.firstElementChild; if (!gem || !gem.classList || !gem.classList.contains('gem')) { gem = document.createElement('div'); gem.className = 'gem'; cell.innerHTML = ''; cell.appendChild(gem); }
+                var disk = gem.firstElementChild; if (!disk || !disk.classList || !disk.classList.contains('disk')) { disk = document.createElement('div'); disk.className = 'disk'; gem.appendChild(disk); }
+                return { cell: cell, gem: gem, disk: disk };
+            }
+
+            function updateCell(r, c) {
+                var idx = r * COLS + c, n = ensureCellNodes(idx), v = grid[r][c]; if (!n.cell) return;
+                if (v != null) { n.disk.style.backgroundColor = COLORS[v]; n.gem.style.opacity = 1; }
+                else { n.gem.style.opacity = 0; }
+            }
+
+            // ===== 入力 =====
+            boardEl.addEventListener('pointerdown', function (e) { e.preventDefault(); if (isResolving) return; var p = cellFromEvent(e); if (!inBounds(p.r, p.c)) return; var col = grid[p.r][p.c]; if (col == null) return; isDragging = true; chain = []; chainColor = col; try { boardEl.setPointerCapture(e.pointerId); } catch (_) { } tryAdd(p.r, p.c); }, { passive: false });
+            boardEl.addEventListener('pointermove', function (e) { e.preventDefault(); if (!isDragging || isResolving) return; var p = cellFromEvent(e); if (!inBounds(p.r, p.c)) return; tryAddOrBack(p.r, p.c); }, { passive: false });
+            boardEl.addEventListener('pointerup', endDrag, { passive: false });
+            boardEl.addEventListener('pointercancel', endDrag, { passive: false });
+            boardEl.addEventListener('pointerleave', function () { if (isDragging) endDrag(); }, { passive: false });
+
+            function cellFromEvent(e) { var rect = boardEl.getBoundingClientRect(); var cw = rect.width / COLS, ch = rect.height / ROWS; var x = Math.max(0, Math.min(rect.width - 1, e.clientX - rect.left)); var y = Math.max(0, Math.min(rect.height - 1, e.clientY - rect.top)); return { r: Math.floor(y / ch), c: Math.floor(x / cw) }; }
+            function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
+            function adj(r1, c1, r2, c2) { var dr = Math.abs(r1 - r2), dc = Math.abs(c1 - c2); return (dr <= 1 && dc <= 1 && (dr + dc) > 0); } // 8方向
+
+            function tryAdd(r, c) { if (!inBounds(r, c) || grid[r][c] !== chainColor) return false; if (chain.length) { var last = chain[chain.length - 1]; if (!adj(last.r, last.c, r, c)) return false; for (var i = 0; i < chain.length; i++) { var p = chain[i]; if (p.r === r && p.c === c) return false; } } chain.push({ r: r, c: c }); markSel(r, c, true); return true; }
+            function tryAddOrBack(r, c) { if (!inBounds(r, c) || grid[r][c] !== chainColor) return; if (!chain.length) { tryAdd(r, c); return; } var last = chain[chain.length - 1]; if (last.r === r && last.c === c) return; if (chain.length >= 2) { var prev = chain[chain.length - 2]; if (prev.r === r && prev.c === c) { var rem = chain.pop(); markSel(rem.r, rem.c, false); return; } } for (var i = 0; i < chain.length; i++) { var p = chain[i]; if (p.r === r && p.c === c) return; } if (adj(last.r, last.c, r, c)) { chain.push({ r: r, c: c }); markSel(r, c, true); } }
+
+            function markSel(r, c, on) {
+                const idx = r * COLS + c;
+                const cell = boardEl.children[idx];
+                if (cell) {
+                    const gem = cell.firstElementChild;
+                    if (gem) {
+                        if (on) {
+                            gem.classList.add('selected');
+                        } else {
+                            gem.classList.remove('selected');
+                        }
+                    }
+                }
+            }
+
+            function restoreSelection() {
+                if (!chain || !chain.length) return;
+                for (const p of chain) {
+                    markSel(p.r, p.c, true); // gem に selected を付けるやつ
+                }
+            }
+
+            function clearSel() { for (var i = 0; i < chain.length; i++) { var p = chain[i]; markSel(p.r, p.c, false); } }
+
+            function endDrag() { if (!isDragging) return; isDragging = false; if (chain.length >= MIN_CHAIN) { resolveChain(); } else { clearSel(); chain = []; chainColor = null; } }
+
+            // ===== 解決（消去→落下→補充） =====
+            function resolveChain() {
+                isResolving = true;
+                score += Math.floor(chain.length * chain.length * 5);
+                scoreEl.textContent = score;
+
+                // 消滅アニメ
+                for (var i = 0; i < chain.length; i++) {
+                    var r = chain[i].r, c = chain[i].c;
+                    var idx = r * COLS + c;
+                    var gem = boardEl.children[idx]?.firstElementChild;
+                    if (gem) gem.classList.add('pop');
+                }
+
+                setTimeout(function () {
+                    // 消去
+                    for (var i = 0; i < chain.length; i++) { grid[chain[i].r][chain[i].c] = null; }
+                    clearSel(); chain = []; chainColor = null;
+
+                    // 重力＋補充
+                    applyGravityAndFill();
+                    isResolving = false;
+                }, 200);
+            }
+
+            function applyGravityAndFill() {
+                var h = cellH(), g = gapPx();
+                var anim = { fallDist: Array(ROWS), spawnDist: Array(ROWS) };
+                for (var r = 0; r < ROWS; r++) {
+                    anim.fallDist[r] = Array(COLS).fill(0);
+                    anim.spawnDist[r] = Array(COLS).fill(0);
+                }
+
+                for (var c = 0; c < COLS; c++) {
+                    var write = ROWS - 1;
+                    for (var r = ROWS - 1; r >= 0; r--) {
+                        if (grid[r][c] != null) {
+                            var v = grid[r][c];
+                            if (write !== r) {
+                                grid[write][c] = v;
+                                grid[r][c] = null;
+                                anim.fallDist[write][c] = (write - r) * (h + g);
+                            }
+                            write--;
+                        }
+                    }
+                    // 新規補充
+                    for (var rr = write; rr >= 0; rr--) {
+                        grid[rr][c] = rand(0, COLORS.length - 1);
+                        anim.spawnDist[rr][c] = (rr + 1) * (h + g);
+                    }
+                }
+
+                // ⚠️ 必ず anim を渡す！
+                renderAll(anim);
+            }
+
+
+            function applyGravity(done) {
+                var moves = [];
+                for (var c = 0; c < COLS; c++) {
+                    var w = ROWS - 1;
+                    for (var r = ROWS - 1; r >= 0; r--) {
+                        if (grid[r][c] != null) {
+                            var color = grid[r][c];
+                            if (w !== r) {
+                                grid[w][c] = color;
+                                grid[r][c] = null;
+                                moves.push({ from: r, to: w, c: c });
+                            }
+                            w--;
+                        }
+                    }
+                }
+
+                // 一旦全セル再描画（nullは非表示）
+                for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) updateCell(r, c);
+
+                // 落下アニメ
+                var h = cellH(), g = gapPx(), pending = moves.length;
+                if (pending === 0) { if (done) done(); return; }
+
+                for (var i = 0; i < moves.length; i++) {
+                    var m = moves[i];
+                    var idx = m.to * COLS + m.c;
+                    var n = ensureCellNodes(idx);
+                    var dist = (m.to - m.from) * (h + g);
+                    fall(n.gem, dist);
+                    n.disk.classList.add('squash');
+                    n.disk.addEventListener('animationend', function (ev) {
+                        ev.currentTarget.classList.remove('squash');
+                        if (--pending === 0 && done) done(); // 全部終わったら fillNew
+                    }, { once: true });
+                }
+            }
+
+            function fillNew() {
+                var h = cellH(), g = gapPx();
+                for (var r = 0; r < ROWS; r++) {
+                    for (var c = 0; c < COLS; c++) {
+                        if (grid[r][c] == null) {
+                            grid[r][c] = rand(0, COLORS.length - 1);
+                            var idx = r * COLS + c; var n = ensureCellNodes(idx);
+                            n.disk.style.backgroundColor = COLORS[grid[r][c]]; n.gem.style.opacity = 1;
+                            var dist = (r + 1) * (h + g); fall(n.gem, dist);
+                            n.disk.classList.add('squash'); n.disk.addEventListener('animationend', function (ev) { ev.currentTarget.classList.remove('squash'); }, { once: true });
+                        }
+                    }
+                }
+            }
+
+            // ===== 見た目ユーティリティ =====
+            function cellH() { var el = boardEl.querySelector('.cell'); return el ? el.clientHeight : 48; }
+            function gapPx() { return 6; }
+            function fall(gem, distance) { if (!gem) return; gem.style.transform = 'translateY(' + (-distance) + 'px)'; requestAnimationFrame(function () { var dur = Math.min(120 + distance * 0.08, 420); gem.style.transition = 'transform ' + dur + 'ms cubic-bezier(.2,.9,.2,1)'; gem.style.transform = 'translateY(0)'; gem.addEventListener('transitionend', function handler() { gem.style.transition = ''; gem.style.transform = ''; gem.removeEventListener('transitionend', handler); }); }); }
+
+            var boardEl = document.getElementById('board');
+            var scoreEl = document.getElementById('score');
+            var resetBtn = document.getElementById('reset');
+
+            // === 制限時間：ここに移動 ===
+            var timeEl = document.getElementById('time');
+            var timeLimit = 60;
+            var timeLeft = timeLimit;
+            var timerId = null;
+            var isGameEnded = false;
+
+            function tick() {
+                if (isGameEnded) return;
+                timeLeft--;
+                timeEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    isGameEnded = true;
+                    if (timerId) { clearInterval(timerId); timerId = null; }
+                    gameOver();
+                }
+            }
+
+            function gameOver() {
+                if (timerId) { clearInterval(timerId); timerId = null; }
+                isResolving = true;
+                boardEl.style.pointerEvents = 'none';
+                alert("ゲームオーバー！ スコア: " + score);
+            }
+
+            function startGame() {
+                // 念のため遅延取得（null対策）
+                if (!timeEl) timeEl = document.getElementById('time');
+
+                isGameEnded = false;
+                score = 0; scoreEl.textContent = 0;
+                timeLeft = timeLimit; timeEl.textContent = timeLeft;
+
+                if (timerId) { clearInterval(timerId); timerId = null; }
+                timerId = setInterval(tick, 1000);
+
+                isResolving = false;
+                boardEl.style.pointerEvents = 'auto';
+
+                init();
+            }
+        })();
+    </script>
+</body>
+
+</html>
