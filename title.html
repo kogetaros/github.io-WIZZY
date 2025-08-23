@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ぽこぽこWIZZY - タイトル</title>
+  <link rel="shortcut icon" href="./icon/favicon.ico">
+  <link rel="apple-touch-icon" href="./icon/apple-touch-icon.png">
+  <meta name="theme-color" content="#123A7A">
+  <style>
+    :root {
+      --bg: #0b1130;
+      --fg: #eaf0ff;
+      --accent: #70d6ff;
+      --pink: #ff7aa2;
+      --yel: #ffcd57;
+      --grn: #a8f06a;
+      --vio: #9f8bff
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      height: 100%
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(120% 100% at 50% 0%, #ffffff, #90a1de);
+      color: var(--fg);
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .scene {
+      position: relative;
+      width: min(680px, 92vw);
+      aspect-ratio: 9/16;
+      max-height: 94vh;
+      border-radius: 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(255, 255, 255, .06);
+      overflow: hidden;
+      background: linear-gradient(180deg, #ffffff, #ffffff);
+    }
+
+    /* 浮遊バブル */
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      opacity: .10;
+      filter: blur(.1px);
+      z-index: 0;
+    }
+
+    @keyframes floatUp {
+      from {
+        transform: translateY(100%) scale(.9);
+        opacity: .0
+      }
+
+      40% {
+        opacity: .85
+      }
+
+      to {
+        transform: translateY(-120%) scale(1.05);
+        opacity: .0
+      }
+    }
+
+    /* メインの内容は手前に */
+    .title,
+    .wizzy,
+    .menu {
+      position: relative;
+      z-index: 1;
+      /* ← 泡より前 */
+    }
+
+    /* ロゴ */
+
+    .title-logo {
+      max-width: 100%;
+      height: auto;
+      margin-top: 0px;
+    }
+
+    /* WIZZY */
+    .wizzy {
+      position: absolute;
+      left: 50%;
+      top: 51%;
+      transform: translate(-50%, -50%) scale(1);
+      width: min(100vmin, 80%);
+      max-width: 340px;
+      animation: popIn .9s ease-out both;
+    }
+
+    @keyframes popIn {
+      from {
+        transform: translate(-50%, -52%) scale(.7);
+        opacity: 0
+      }
+
+      to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1
+      }
+    }
+
+    /* ボタン */
+    .menu {
+      position: absolute;
+      left: 50%;
+      bottom: 18%;
+      transform: translateX(-50%);
+    }
+
+    .btn {
+      appearance: none;
+      border: 0;
+      border-radius: 16px;
+      padding: 16px 28px;
+      font-weight: 800;
+      font-size: clamp(18px, 4.5vw, 22px);
+      letter-spacing: .03em;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .1);
+      color: #0b1130;
+      background: linear-gradient(180deg, #fff, #e8f1ff);
+    }
+
+    .btn:active {
+      transform: translateY(2px)
+    }
+
+    .fade-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .35s ease;
+      z-index: 9999;
+    }
+
+    /* 表示状態（暗転） */
+    .fade-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* 入口でフェードインさせたい場合（任意） */
+    body.fade-enter #fade {
+      opacity: 1
+    }
+
+    body.fade-enter .fade-overlay {
+      transition: none
+    }
+
+    body.fade-enter {
+      animation: fadeIn .35s ease forwards
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
+    /* アニメ苦手設定の尊重（任意） */
+    @media (prefers-reduced-motion: reduce) {
+      .fade-overlay {
+        transition: none
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="scene" id="scene">
+    <div class="title">
+      <img src="title_logo.png" alt="ぽこぽこWIZZY" class="title-logo">
+    </div>
+    <!-- WIZZY透過PNG -->
+    <img class="wizzy" src="WIZZY.png" alt="WIZZY">
+    <div class="menu">
+      <button class="btn" id="startBtn">▶ はじめる</button>
+    </div>
+  </div>
+
+  <script>
+    // 背景にバブルを漂わせる（そのまま）
+    const scene = document.getElementById('scene');
+    const colors = ['#ffcd57', '#6cd5ff', '#a8f06a', '#ff7aa2', '#9f8bff'];
+    for (let i = 0; i < 25; i++) {
+      const b = document.createElement('div');
+      const size = Math.round(rand(20, 50));
+      b.className = 'bubble';
+      b.style.width = b.style.height = size + 'px';
+      b.style.left = rand(0, 100) + '%';
+      b.style.bottom = rand(0, 80) + '%';
+      b.style.background = colors[rand(0, colors.length - 1)];
+      b.style.animation = `floatUp ${rand(9, 16)}s linear ${rand(0, 800) / 1000}s infinite`;
+      scene.appendChild(b);
+    }
+    function rand(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a }
+
+    // 入場時：フェード状態をリセット
+    window.addEventListener('pageshow', () => {
+      const fade = document.getElementById('fade');
+      fade?.classList.remove('show');
+    });
+
+    // 暗転→遷移
+    function fadeTo(url) {
+      const fade = document.getElementById('fade');
+      fade.classList.add('show');            // 暗転開始
+      setTimeout(() => { location.href = url; }, 300); // 完了後に遷移
+    }
+
+    // ✅ はじめるボタン：暗転して menu.html へ
+    document.getElementById('startBtn').addEventListener('click', () => {
+      fadeTo('./menu.html');
+    });
+  </script>
+
+  <!-- 画面全体を覆う黒フェード -->
+  <div id="fade" class="fade-overlay" aria-hidden="true"></div>
+</body>
+
+</html>
