@@ -1,0 +1,127 @@
+<!-- menu.html -->
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ぽこぽこWIZZY - メニュー</title>
+  <link rel="shortcut icon" href="./icon/favicon.ico">
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #ffffff, #90a1de);
+      font-family: system-ui, sans-serif;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 24px;
+    }
+
+    /* メニュー全体：1列・同じ幅に */
+.menu{
+  display:grid;
+  grid-template-columns: 1fr;   /* ← 明示的に1列 */
+  gap:16px;
+  width:80%;
+  max-width:320px;
+}
+
+/* ボタンをフル幅・同じ高さ・中央寄せに */
+.btn{
+  display:flex;                 /* ← 中央揃え用 */
+  align-items:center;           /* 縦中央 */
+  justify-content:center;       /* 横中央 */
+  gap:10px;                     /* 絵文字と文字の間隔が一定 */
+  width:100%;                   /* ← 横幅をそろえる */
+  min-height:56px;              /* ← 高さを統一（お好みで 52–64px） */
+  padding:0 18px;               /* ← 高さは min-height に任せる */
+  line-height:1;                /* ← 絵文字で行高が暴れないように */
+  white-space:nowrap;           /* ← 折り返し防止 */
+  border:none;
+  border-radius:16px;
+  font-size:18px;
+  font-weight:bold;
+  cursor:pointer;
+  background:linear-gradient(180deg,#fff,#e8f1ff);
+  color:#0a0d22;
+  box-shadow:0 6px 14px rgba(0,0,0,.3);
+  -webkit-appearance:none;      /* iOSのボタン既定スタイル無効化 */
+}
+
+/* 押下時の沈み込みだけ維持 */
+.btn:active{ transform:translateY(2px) }
+
+    /* すでに使っている黒幕 */
+    .fade-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .7s ease;
+      z-index: 9999;
+    }
+
+    .fade-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* 中身の“ふわっ” */
+    .container {
+      opacity: 0;
+      transform: scale(.985);
+      filter: blur(2px);
+      transition: opacity .7s ease, transform .7s ease, filter .7s ease;
+    }
+
+    body.ready .container {
+      opacity: 1;
+      transform: scale(1);
+      filter: blur(0);
+    }
+
+    /* 低モーション配慮 */
+    @media (prefers-reduced-motion: reduce) {
+
+      .fade-overlay,
+      .container {
+        transition: none
+      }
+    }
+  </style>
+</head>
+
+<body class="fade-enter">
+  <div id="fade" class="fade-overlay show" aria-hidden="true"></div>
+  <div class="container">
+    <h1 style="color: #0a0d22;">メニュー</h1>
+    <div class="menu">
+      <button class="btn" onclick="location.href='./index.html'">プレイ</button>
+      <button class="btn" onclick="location.href='./ranking.html'">🏆 ランキング</button>
+      <button class="btn" onclick="location.href='./badges.html'">🎖 バッジ</button>
+      <button class="btn" onclick="location.href='./settings.html'">⚙️ 設定</button>
+    </div>
+  </div>
+  <script>
+    // menu.html の入場処理：黒→表示
+    window.addEventListener('DOMContentLoaded', () => {
+      const fade = document.getElementById('fade');
+      // 1フレーム待ってから黒幕を外すと、トランジションが確実に走る
+      requestAnimationFrame(() => {
+        fade.classList.remove('show');              // 黒幕フェードアウト
+        document.body.classList.add('ready');       // 中身をふわっと表示
+      });
+    });
+  </script>
+</body>
+
+</html>
