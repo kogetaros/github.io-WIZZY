@@ -5,9 +5,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="WIZZY">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <link rel="icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icon/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./icon/favicon-16.png">
+    <link rel="shortcut icon" href="./icon/favicon.ico">
+    <link rel="apple-touch-icon" href="./icon/apple-touch-icon.png">
+    <link rel="manifest" href="./site.webmanifest">
     <title>ぽこぽこWIZZY</title>
     <style>
         :root {
@@ -224,7 +229,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js');
+            navigator.serviceWorker.register('./sw.js'); // ← 相対に
             });
         }
 
