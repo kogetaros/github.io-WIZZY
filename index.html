@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="favicon.ico">
     <title>ぽこぽこWIZZY</title>
     <style>
         :root {
@@ -189,6 +190,20 @@
             animation: blink .8s linear infinite;
         }
     </style>
+    <!-- タブ用ファビコン（一般的） -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icon/favicon-16.png">
+    <!-- 互換用（あれば） -->
+    <link rel="shortcut icon" href="/icon/favicon.ico">
+
+    <!-- iPhone / iPad ホーム追加用 -->
+    <link rel="apple-touch-icon" href="/icon/apple-touch-icon.png">
+
+    <link rel="manifest" href="/site.webmanifest">
+
+    <!-- ブラウザUIのテーマカラー（任意） -->
+    <meta name="theme-color" content="#123A7A">
+
 </head>
 
 <body>
@@ -204,6 +219,12 @@
     </div>
 
     <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+        
         (function () {
             'use strict';
             // ===== 基本設定 =====
