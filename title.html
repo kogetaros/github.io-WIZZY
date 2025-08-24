@@ -91,16 +91,24 @@
       margin-top: 0px;
     }
 
-    /* WIZZY */
-    .wizzy {
-      position: absolute;
-      left: 50%;
-      top: 51%;
-      transform: translate(-50%, -50%) scale(1);
-      width: min(100vmin, 80%);
-      max-width: 340px;
-      animation: popIn .9s ease-out both;
-    }
+    /* 最初は非表示 */
+.wizzy {
+  position: absolute;
+  left: 50%;
+  top: 51%;
+  transform: translate(-50%, -50%) scale(1);
+  width: min(100vmin, 80%);
+  max-width: 340px;
+  opacity: 0;           /* ←追加 */
+  visibility: hidden;   /* ←追加 */
+}
+
+/* 読み込み後に表示させる */
+.show-wizzy .wizzy {
+  opacity: 1;
+  visibility: visible;
+  animation: popIn .9s ease-out both;
+}
 
     @keyframes popIn {
       from {
@@ -202,7 +210,8 @@
       <img src="title_logo.png" alt="ぽこぽこWIZZY" class="title-logo">
     </div>
     <!-- WIZZY透過PNG -->
-    <img class="wizzy" src="WIZZY.png" alt="WIZZY">
+    <img class="wizzy" src="WIZZY.png" alt="WIZZY"
+     onload="document.body.classList.add('show-wizzy')">
     <div class="menu">
       <button class="btn" id="startBtn">▶ はじめる</button>
     </div>
