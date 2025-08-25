@@ -1,127 +1,281 @@
-<!-- menu.html -->
 <!doctype html>
 <html lang="ja">
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ぽこぽこWIZZY - メニュー</title>
-  <link rel="shortcut icon" href="./icon/favicon.ico">
-  <style>
-    body {
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: linear-gradient(180deg, #ffffff, #90a1de);
-      font-family: system-ui, sans-serif;
-      color: #fff;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ぽこぽこWIZZY - メニュー</title>
+<link rel="shortcut icon" href="./icon/favicon.ico">
 
-    h1 {
-      font-size: 32px;
-      margin-bottom: 24px;
-    }
-
-    /* メニュー全体：1列・同じ幅に */
-.menu{
-  display:grid;
-  grid-template-columns: 1fr;   /* ← 明示的に1列 */
-  gap:16px;
-  width:80%;
-  max-width:320px;
+<style>
+/* ==============================
+   テーマ & ベース
+================================ */
+:root{
+  --bg1:#cbe9ff; --bg2:#cfd7ff;        /* 背景グラデ */
+  --card:rgba(255,255,255,.78);         /* ガラスカード */
+  --ink:#0b1130; --ink2:#345;           /* 文字色 */
+  --hp1:#ffb2c8; --hp2:#b9c9ff;         /* HPグラデ */
+  --accent:#6cd5ff; --accent2:#9f8bff;  /* 差し色 */
+  --radius:26px;
+  --shadow:0 24px 60px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.18);
+  --blur:8px;
 }
 
-/* ボタンをフル幅・同じ高さ・中央寄せに */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:system-ui,-apple-system,'Segoe UI',sans-serif; color:var(--ink);
+  display:grid; place-items:center; overflow:hidden;
+  background:linear-gradient(180deg,var(--bg1),var(--bg2));
+}
+
+/* ==============================
+   端末内フレーム
+================================ */
+.app{
+  width:min(690px,92vw); aspect-ratio:9/16; max-height:94vh; position:relative; overflow:hidden;
+  border-radius:var(--radius); padding:14px 16px 18px;
+  box-shadow:var(--shadow);
+}
+
+/* ふわふわ泡 背景 */
+.app::before, .app::after{
+  content:""; position:absolute; inset:-10% -10% auto -10%; height:65%; pointer-events:none; filter:blur(2px);
+  background:
+    radial-gradient(30px 30px at 8% 80%, rgba(255,255,255,.65), transparent 60%),
+    radial-gradient(50px 50px at 38% 92%, rgba(255,255,255,.55), transparent 60%),
+    radial-gradient(22px 22px at 78% 75%, rgba(255,255,255,.5), transparent 60%),
+    radial-gradient(36px 36px at 60% 70%, rgba(255,255,255,.5), transparent 60%);
+}
+.app::after{
+  inset:auto -10% -12% -10%; height:55%;
+  background:
+    radial-gradient(28px 28px at 20% 10%, rgba(255,255,255,.6), transparent 60%),
+    radial-gradient(46px 46px at 55% 0%, rgba(255,255,255,.5), transparent 60%),
+    radial-gradient(24px 24px at 85% 8%, rgba(255,255,255,.45), transparent 60%);
+}
+
+/* ==============================
+   上部：ピル型ステータス
+================================ */
+.topbar{display:flex; gap:10px; justify-content:center; z-index:1; position:relative}
+.pill{
+  display:flex; align-items:center; gap:.5em;
+  padding:.52rem .9rem; border-radius:999px; background:var(--card);
+  backdrop-filter:blur(var(--blur));
+  box-shadow:0 8px 18px rgba(0,0,0,.14), inset 0 0 0 1px rgba(255,255,255,.5);
+}
+.pill img{width:18px; height:18px}
+.pill b{font-weight:800}
+
+/* ==============================
+   カード共通
+================================ */
+.card{
+  background:var(--card); backdrop-filter:blur(calc(var(--blur) + 1px)); border-radius:22px;
+  padding:14px; box-shadow:0 12px 26px rgba(0,0,0,.18), inset 0 0 0 1px rgba(255,255,255,.55);
+}
+
+/* メインカード（キャラ＆HP） */
+.main{
+  margin:12px 0; padding:18px 16px;
+  display:grid; grid-template-columns:88px 1fr; gap:14px; align-items:center;
+}
+.chibi{
+  width:88px; height:88px; object-fit:contain;
+  filter:drop-shadow(0 8px 12px rgba(0,0,0,.2))
+}
+.name{font-weight:900; font-size:1.1rem}
+.badge{display:inline-flex; align-items:center; gap:.4em; margin-left:.5em; padding:.1em .6em; border-radius:999px;
+  background:rgba(159,139,255,.18); color:var(--accent2); font-weight:800; font-size:.85rem}
+
+.hp{
+  height:14px; border-radius:999px; background:rgba(0,0,0,.06); overflow:hidden; position:relative; margin:.5rem 0 .35rem
+}
+.hp .fill{
+  height:100%; width:70%;
+  background:linear-gradient(90deg,var(--hp1),var(--hp2));
+  box-shadow:inset 0 0 10px rgba(255,122,162,.45);
+  border-radius:999px; transition:width .35s ease;
+}
+.meta{display:flex; gap:16px; color:var(--ink2); font-size:.95rem}
+.meta img{width:16px; height:16px; margin-right:.35em; vertical-align:-2px}
+
+/* ミッションストリップ */
+.mission{display:flex; align-items:center; justify-content:space-between; margin:10px 0}
+.mission .title{font-weight:800}
+.stars{letter-spacing:.2em}
+
+/* ==============================
+   ボタン群
+================================ */
+.actions{display:grid; grid-template-columns:1fr 1.3fr 1fr; gap:12px; margin-top:10px}
 .btn{
-  display:flex;                 /* ← 中央揃え用 */
-  align-items:center;           /* 縦中央 */
-  justify-content:center;       /* 横中央 */
-  gap:10px;                     /* 絵文字と文字の間隔が一定 */
-  width:100%;                   /* ← 横幅をそろえる */
-  min-height:56px;              /* ← 高さを統一（お好みで 52–64px） */
-  padding:0 18px;               /* ← 高さは min-height に任せる */
-  line-height:1;                /* ← 絵文字で行高が暴れないように */
-  white-space:nowrap;           /* ← 折り返し防止 */
-  border:none;
-  border-radius:16px;
-  font-size:18px;
-  font-weight:bold;
-  cursor:pointer;
-  background:linear-gradient(180deg,#fff,#e8f1ff);
-  color:#0a0d22;
-  box-shadow:0 6px 14px rgba(0,0,0,.3);
-  -webkit-appearance:none;      /* iOSのボタン既定スタイル無効化 */
+  appearance:none; border:0; border-radius:16px; padding:14px 12px; font-weight:900; cursor:pointer;
+  box-shadow:0 10px 22px rgba(0,0,0,.2), inset 0 0 0 1px rgba(255,255,255,.5);
+  background:rgba(255,255,255,.68); transition:transform .12s, box-shadow .12s
+}
+.btn.primary{background:linear-gradient(180deg,#ffffff,#e9f6ff)}
+.btn.big{font-size:1.15rem}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(1px)}
+
+/* 右下ドック */
+.dock{position:absolute; right:16px; bottom:12px; display:flex; gap:10px}
+.dot{
+  width:46px; height:46px; border-radius:50%; border:0;
+  background:var(--card); backdrop-filter:blur(var(--blur));
+  box-shadow:0 8px 20px rgba(0,0,0,.2), inset 0 0 0 1px rgba(255,255,255,.5);
+  cursor:pointer
 }
 
-/* 押下時の沈み込みだけ維持 */
-.btn:active{ transform:translateY(2px) }
+/* レイアウトヘルパ */
+.stack{display:grid; gap:12px; margin-top:8px}
+footer.ver{position:absolute; left:50%; bottom:8px; transform:translateX(-50%); color:#20324a; font-size:.9rem}
 
-    /* すでに使っている黒幕 */
-    .fade-overlay {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .7s ease;
-      z-index: 9999;
-    }
+/* ちょい可動感 */
+@keyframes pop{from{transform:scale(.96); opacity:0} to{transform:scale(1); opacity:1}}
+.card, .pill, .btn, .dot{animation:pop .25s ease both}
 
-    .fade-overlay.show {
-      opacity: 1;
-      pointer-events: auto;
-    }
+/* ==============================
+   画面全体の黒フェード
+   - 初期表示: 黒(show) → JSで外す
+   - 遷移時  : showを付与 → setTimeoutで移動
+================================ */
+.fade-overlay{
+  position:fixed; inset:0; background:#000;
+  opacity:0; pointer-events:none;
+  transition:opacity 1s ease;   /* ← 黒→明るいのフェード時間（調整可） */
+  z-index:9999;
+}
+.fade-overlay.show{ opacity:1; pointer-events:auto; }
 
-    /* 中身の“ふわっ” */
-    .container {
-      opacity: 0;
-      transform: scale(.985);
-      filter: blur(2px);
-      transition: opacity .7s ease, transform .7s ease, filter .7s ease;
-    }
-
-    body.ready .container {
-      opacity: 1;
-      transform: scale(1);
-      filter: blur(0);
-    }
-
-    /* 低モーション配慮 */
-    @media (prefers-reduced-motion: reduce) {
-
-      .fade-overlay,
-      .container {
-        transition: none
-      }
-    }
-  </style>
+/* アニメ苦手設定の尊重（任意） */
+@media (prefers-reduced-motion: reduce){
+  .fade-overlay{ transition:none; }
+}
+</style>
 </head>
+<body>
 
-<body class="fade-enter">
-  <div id="fade" class="fade-overlay show" aria-hidden="true"></div>
-  <div class="container">
-    <h1 style="color: #0a0d22;">メニュー</h1>
-    <div class="menu">
-      <button class="btn" onclick="location.href='./play.html'">プレイ</button>
-      <button class="btn" onclick="location.href='./ranking.html'">🏆 ランキング</button>
-      <button class="btn" onclick="location.href='./badges.html'">🎖 バッジ</button>
-      <button class="btn" onclick="location.href='./settings.html'">⚙️ 設定</button>
+<!-- 最初は黒いままにしておく（到着時フェードイン用） -->
+<div id="fade" class="fade-overlay show" aria-hidden="true"></div>
+
+<div class="app" id="app" role="main" aria-label="メニュー画面">
+  <!-- 上部ステータス -->
+  <div class="topbar" aria-label="ステータス">
+    <div class="pill" title="ライフ">♥️<b id="life">5</b></div>
+    <div class="pill" title="コイン">💵<b id="coin">12,345</b></div>
+    <div class="pill" title="ジェム">💎<b id="gem">83</b></div>
+  </div>
+
+  <div class="stack">
+    <!-- メインカード -->
+    <section class="card main" aria-label="キャラクターとステータス">
+      <img class="chibi" src="img/WIZZY.png" alt="WIZZY">
+      <div>
+        <div class="name">
+          ゆうせい
+          <span class="badge">Lv.<b id="lv">5</b></span>
+        </div>
+        <div class="hp" aria-label="HP">
+          <div class="fill" id="hpFill"></div>
+        </div>
+        <div class="meta">
+          <span><img src="ui/medal.png" alt="">バッジ <b id="badges">5</b></span>
+          <span>所持WIZZY <b id="items">12</b></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ミッション -->
+    <section class="card mission" aria-label="今日のミッション">
+      <div class="title">今日のミッション</div>
+      <div class="stars" id="missionStars" aria-hidden="true">★ ★ ☆</div>
+      <button class="btn" id="missionBtn" aria-label="ミッション詳細">詳細</button>
+    </section>
+
+    <!-- ボタン3列 -->
+    <div class="actions" aria-label="メニュー">
+      <button class="btn" id="cardBtn">📇 カード</button>
+      <button class="btn primary big" id="playBtn">▶ プレイ</button>
+      <button class="btn" id="badgeBtn">🏵 バッジ</button>
     </div>
   </div>
-  <script>
-    // menu.html の入場処理：黒→表示
-    window.addEventListener('DOMContentLoaded', () => {
-      const fade = document.getElementById('fade');
-      // 1フレーム待ってから黒幕を外すと、トランジションが確実に走る
-      requestAnimationFrame(() => {
-        fade.classList.remove('show');              // 黒幕フェードアウト
-        document.body.classList.add('ready');       // 中身をふわっと表示
-      });
-    });
-  </script>
-</body>
 
+  <!-- 右下ドック -->
+  <div class="dock" aria-label="その他">
+    <button class="dot" id="rankBtn" title="ランキング" aria-label="ランキング">🏆</button>
+    <button class="dot" id="settingBtn" title="設定" aria-label="設定">⚙️</button>
+  </div>
+
+  <footer class="ver">ベータ版</footer>
+</div>
+
+<script>
+/* ==============================
+   パラメータ（秒数はここで調整）
+================================ */
+// 到着時：黒いまま“待つ時間”（ms）
+const ARRIVAL_HOLD_MS = 400;
+// 遷移時：暗転後にページを移動するまでの待機（ms）
+const LEAVE_HOLD_MS   = 1000;
+
+/* ==============================
+   ダミーのプレイヤーデータ（実データに置き換えてOK）
+================================ */
+const player = {
+  name: "ゆうせい",
+  level: 7,
+  hp: 56,
+  maxHP: 80,
+  coin: 43173,
+  gem: 83,
+  lives: 5,
+  badges: 12,
+  items: 18,
+  missionStars: 3
+};
+
+function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+/* 値の反映 */
+document.getElementById('lv').textContent = player.level;
+document.getElementById('coin').textContent = player.coin.toLocaleString();
+document.getElementById('gem').textContent  = player.gem.toLocaleString();
+document.getElementById('life').textContent = player.lives;
+document.getElementById('badges').textContent = player.badges;
+document.getElementById('items').textContent  = player.items;
+document.getElementById('hpFill').style.width =
+  clamp((player.hp / Math.max(1, player.maxHP)) * 100, 0, 100) + '%';
+document.getElementById('missionStars').textContent =
+  '★ '.repeat(player.missionStars).trim() + (player.missionStars<3 ? ' ' + '☆ '.repeat(3-player.missionStars).trim() : '');
+
+/* ==============================
+   フェード制御
+================================ */
+// 到着時：少し黒を保ってからフェードアウト（BCache復帰にも対応）
+window.addEventListener('pageshow', () => {
+  const fade = document.getElementById('fade');
+  setTimeout(() => { fade.classList.remove('show'); }, ARRIVAL_HOLD_MS);
+});
+
+// 遷移時：暗転→待機→遷移
+function fadeTo(url){
+  const fade = document.getElementById('fade');
+  fade.classList.add('show');
+  setTimeout(() => { location.href = url; }, LEAVE_HOLD_MS);
+}
+
+/* ==============================
+   クリック遷移（全て暗転経由）
+================================ */
+document.getElementById('playBtn')   ?.addEventListener('click', () => fadeTo('./play.html'));
+document.getElementById('rankBtn')   ?.addEventListener('click', () => fadeTo('./ranking.html'));
+document.getElementById('badgeBtn')  ?.addEventListener('click', () => fadeTo('./badges.html'));
+document.getElementById('cardBtn')   ?.addEventListener('click', () => fadeTo('./cards.html'));
+document.getElementById('settingBtn')?.addEventListener('click', () => fadeTo('./settings.html'));
+document.getElementById('missionBtn')?.addEventListener('click', () => alert('今日のミッション詳細を表示'));
+</script>
+</body>
 </html>
