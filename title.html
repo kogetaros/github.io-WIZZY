@@ -92,23 +92,25 @@
     }
 
     /* 最初は非表示 */
-.wizzy {
-  position: absolute;
-  left: 50%;
-  top: 51%;
-  transform: translate(-50%, -50%) scale(1);
-  width: min(100vmin, 80%);
-  max-width: 340px;
-  opacity: 0;           /* ←追加 */
-  visibility: hidden;   /* ←追加 */
-}
+    .wizzy {
+      position: absolute;
+      left: 50%;
+      top: 51%;
+      transform: translate(-50%, -50%) scale(1);
+      width: min(100vmin, 80%);
+      max-width: 340px;
+      opacity: 0;
+      /* ←追加 */
+      visibility: hidden;
+      /* ←追加 */
+    }
 
-/* 読み込み後に表示させる */
-.show-wizzy .wizzy {
-  opacity: 1;
-  visibility: visible;
-  animation: popIn .9s ease-out both;
-}
+    /* 読み込み後に表示させる */
+    .show-wizzy .wizzy {
+      opacity: 1;
+      visibility: visible;
+      animation: popIn .9s ease-out both;
+    }
 
     @keyframes popIn {
       from {
@@ -143,7 +145,7 @@
       color: #0b1130;
       background: linear-gradient(180deg, #fff, #e8f1ff);
     }
-    
+
     .version {
       position: absolute;
       color: #0b1130;
@@ -201,17 +203,92 @@
         transition: none
       }
     }
+
+    /* ==== 名前モーダル ==== */
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 99999
+    }
+
+    .modal.show {
+      display: block
+    }
+
+    .modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, .45)
+    }
+
+    .modal__panel {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(92vw, 420px);
+      border-radius: 20px;
+      padding: 20px;
+      background: #fff;
+      color: #0a0d22;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+    }
+
+    .modal__panel h2 {
+      margin: 0 0 8px;
+      font-size: 20px
+    }
+
+    .modal__hint {
+      margin: 0 0 12px;
+      font-size: 12px;
+      opacity: .75
+    }
+
+    #nameInput {
+      width: 100%;
+      font-size: 18px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #d5dbff;
+      outline: none;
+    }
+
+    .modal__row {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 14px
+    }
+
+    .btn.secondary {
+      background: linear-gradient(180deg, #d9e7ff, #cfe0ff)
+    }
   </style>
 </head>
 
 <body>
+  <!-- 名前入力モーダル -->
+  <div id="nameModal" class="modal" aria-hidden="true">
+    <div class="modal__backdrop"></div>
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
+      <h2 id="nameTitle">プレイヤー名を入力</h2>
+      <p class="modal__hint">1〜12文字（絵文字・記号不可。あとで設定から変更できます）</p>
+      <input id="nameInput" type="text" maxlength="12" placeholder="例）ぽこぽこ太郎" autocomplete="off">
+      <div class="modal__row">
+        <button id="nameCancel" class="btn secondary" type="button">キャンセル</button>
+        <button id="nameSubmit" class="btn" type="button">決定</button>
+      </div>
+    </div>
+  </div>
+
   <div class="scene" id="scene">
     <div class="title">
       <img src="title_logo.png" alt="ぽこぽこWIZZY" class="title-logo">
     </div>
     <!-- WIZZY透過PNG -->
-    <img class="wizzy" src="WIZZY.png" alt="WIZZY"
-     onload="document.body.classList.add('show-wizzy')">
+    <img class="wizzy" src="WIZZY.png" alt="WIZZY" onload="document.body.classList.add('show-wizzy')">
     <div class="menu">
       <button class="btn" id="startBtn">▶ はじめる</button>
     </div>
@@ -222,6 +299,79 @@
     // 背景にバブルを漂わせる（そのまま）
     const scene = document.getElementById('scene');
     const colors = ['#ffcd57', '#6cd5ff', '#a8f06a', '#ff7aa2', '#9f8bff'];
+
+    // ★ APIのベースURL（ローカル or 本番で切替）
+    const API_BASE = 'http://localhost:3000';
+
+    // ブラウザ固有UID
+    const UID_KEY = 'wizzy_uid';
+    function getUID() {
+      let uid = localStorage.getItem(UID_KEY);
+      if (!uid) {
+        uid = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36));
+        localStorage.setItem(UID_KEY, uid);
+      }
+      return uid;
+    }
+
+    // 起動時にユーザーを初期化（あれば既存更新）
+    (async function bootstrap() {
+      try {
+        await fetch(`${API_BASE}/api/bootstrap`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: getUID() })
+        });
+      } catch (e) { }
+    })();
+
+    // 名前のバリデーション（1〜12文字、絵文字/記号を弾く簡易版）
+    function validName(s) {
+      const name = s.trim();
+      if (name.length < 1 || name.length > 12) return false;
+      // ひらがな/カタカナ/漢字/英数/長音・々・〇 を許可（必要に応じて調整）
+      return /^[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}A-Za-z0-9ー々〇]+$/u.test(name);
+    }
+
+    const modal = document.getElementById('nameModal');
+    const nameInput = document.getElementById('nameInput');
+    const nameSubmit = document.getElementById('nameSubmit');
+    const nameCancel = document.getElementById('nameCancel');
+
+    function openNameModal() {
+      modal.classList.add('show');
+      setTimeout(() => nameInput.focus(), 0);
+    }
+    function closeNameModal() {
+      modal.classList.remove('show');
+    }
+
+    async function saveNameAndGo() {
+      const name = nameInput.value.trim();
+      if (!validName(name)) {
+        alert('1〜12文字で、絵文字・記号は使えません。');
+        nameInput.focus();
+        return;
+      }
+      try {
+        await fetch(`${API_BASE}/api/set-name`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: getUID(), name })
+        });
+        fadeTo('./menu.html');
+      } catch (e) {
+        alert('保存に失敗しました。ネットワークをご確認ください。');
+      }
+    }
+
+    nameSubmit.addEventListener('click', saveNameAndGo);
+    nameCancel.addEventListener('click', closeNameModal);
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveNameAndGo();
+      if (e.key === 'Escape') closeNameModal();
+    });
+
     for (let i = 0; i < 25; i++) {
       const b = document.createElement('div');
       const size = Math.round(rand(20, 50));
@@ -249,9 +399,24 @@
     }
 
     // ✅ はじめるボタン：暗転して menu.html へ
-    document.getElementById('startBtn').addEventListener('click', () => {
-      fadeTo('./menu.html');
+    // ✅ はじめる：名前が未設定なら入力→決定で遷移。設定済みなら即遷移
+    document.getElementById('startBtn').addEventListener('click', async () => {
+      try {
+        const uid = getUID();
+        const r = await fetch(`${API_BASE}/api/me?uid=${encodeURIComponent(uid)}`);
+        const me = r.ok ? await r.json() : null;
+        const needName = !me || !me.name || me.name === 'ゲスト';
+        if (needName) {
+          openNameModal();
+        } else {
+          fadeTo('./menu.html');
+        }
+      } catch (e) {
+        // 取得失敗時は念のため入力させる
+        openNameModal();
+      }
     });
+
   </script>
 
   <!-- 画面全体を覆う黒フェード -->
